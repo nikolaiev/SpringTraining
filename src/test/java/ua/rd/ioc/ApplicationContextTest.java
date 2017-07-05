@@ -2,6 +2,8 @@ package ua.rd.ioc;
 
 import org.junit.Test;
 import ua.rd.domain.Tweet;
+import ua.rd.domain.repository.InMemTweetRepository;
+import ua.rd.domain.repository.TweetRepository;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -21,6 +23,7 @@ public class ApplicationContextTest {
             /*initializing block*/
             {
                 put("tweet", Tweet.class);
+                put("tweetRepository", InMemTweetRepository.class);
             }
         };
 
@@ -66,7 +69,7 @@ public class ApplicationContextTest {
         Config javaConfig =new JavaConfig(createTestBeanDescription());
         BeanDefinition [] beanDefinition= javaConfig.getBeanDefinitions();
 
-        assertEquals(1,beanDefinition.length);
+        assertEquals(2,beanDefinition.length);
     }
 
 
@@ -89,5 +92,45 @@ public class ApplicationContextTest {
         Context context=new ApplicationContext(javaConfig);
 
         assertNotNull(context.getBean("tweet"));
+    }
+
+    //TODO getBean prototype???
+    /*@Test
+    public void testGetToSameBeansEqual(){
+        Map<String, Class<?>> testBeanDescription = new HashMap<String, Class<?>>(){
+            *//*initializing block*//*
+            {
+                put("tweet", Tweet.class);
+            }
+        };
+        Config javaConfig =new JavaConfig(testBeanDescription );
+        Context context=new ApplicationContext(javaConfig);
+
+        Object bean1=context.getBean("tweet");
+        Object bean2=context.getBean("tweet");
+
+        assertNotSame(bean1,bean2);
+    }*/
+
+    @Test
+    public void testGetPrototypeBeansNotEqual(){
+        Map<String, Class<?>> testBeanDescription = createTestBeanDescription();
+        Config javaConfig =new JavaConfig(testBeanDescription );
+        Context context=new ApplicationContext(javaConfig);
+
+        Object bean1=context.getBean("tweet");
+        Object bean2=context.getBean("tweet");
+
+        assertSame(bean1,bean2);
+    }
+
+    @Test
+    public void testInitMethodCall(){
+        Map<String, Class<?>> testBeanDescription = createTestBeanDescription();
+        Config javaConfig =new JavaConfig(testBeanDescription );
+        Context context=new ApplicationContext(javaConfig);
+
+        TweetRepository bean1=context.getBean("tweetRepository");
+        assertNotNull(bean1.getAllTweets());
     }
 }
