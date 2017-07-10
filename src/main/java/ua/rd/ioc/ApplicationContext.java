@@ -1,13 +1,11 @@
 package ua.rd.ioc;
 
+import lombok.Data;
 import ua.rd.domain.Tweet;
 import ua.rd.domain.repository.Benchmark;
 
 import java.lang.reflect.*;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 
 public class ApplicationContext implements   Context {
@@ -36,12 +34,23 @@ public class ApplicationContext implements   Context {
     }
 
     private void createBean(String beanName) {
-        //TODO check if prototype
-        if(context.containsKey(beanName)){
+
+        if(checkBeanIsProto(beanName)||context.containsKey(beanName)){
            return;
         }
 
-        //TODO check if bean has args or not args constructor
+        Object bean=createProtoBean(beanName);
+
+        if(!checkBeanIsProto(beanName))
+            context.put(beanName, bean);
+    }
+
+    private boolean checkBeanIsProto(String beanName){
+        BeanDefinition bd=getBeanDefinition(beanName);
+        return bd.isPrototype();
+    }
+
+    private Object createProtoBean(String beanName){
         BeanDefinition bd=getBeanDefinition(beanName);
 
         Class<?> beanType=bd.getBeanType();
@@ -50,17 +59,14 @@ public class ApplicationContext implements   Context {
         Object bean;
 
         if(beanConstructor.getParameterCount()==0) {
-            bean = createBeanWithNoDefaultConstructor(beanType);
+            bean = createBeanWithDefaultConstructor(beanType);
         }
         else{
-            bean = createBeanWithDefaultConstructor(beanType);
+            bean = createBeanWithNoDefaultConstructor(beanType);
         }
 
         callInitMethod(bean);
-        bean=createBenchmarkProxy(bean);
-
-        //TODO if (bean is prototype) do not put
-        context.put(beanName, bean);
+        return createBenchmarkProxy(bean);
     }
 
     private Object createBenchmarkProxy(Object bean) {
@@ -93,11 +99,6 @@ public class ApplicationContext implements   Context {
                 .findAny().orElseThrow(()->new RuntimeException("Bean not found with name "+beanName));
     }
 
-    private <T> T  createBeanWithDefaultConstructor(Class<?> beanName) {
-        //TODO implement
-        return null;
-    }
-
     public String[] getBeanDefinitionsName(){
         if(config==null){
             return new String[]{};
@@ -110,7 +111,8 @@ public class ApplicationContext implements   Context {
 
     @Override
     public <T> T getBean(String beanName)  {
-        //TODO if(beanDefinition is prototype) createBean
+        if(checkBeanIsProto(beanName))
+            return (T)createProtoBean(beanName);
 
         T bean=(T)context.get(beanName);
         return bean;
@@ -132,11 +134,50 @@ public class ApplicationContext implements   Context {
         }
     }
 
-    private <T> T createBeanWithNoDefaultConstructor(Class<T> beanType) {
-
+    private <T> T  createBeanWithDefaultConstructor(Class<T> beanType) {
         return newInstance(beanType);
     }
 
+    private <T> T createBeanWithNoDefaultConstructor(Class<T> beanType) {
+        System.out.println(beanType);
+        BeanDefinition [] beanDefinitions=config.getBeanDefinitions();
+
+        final Constructor<?> beanConstructor = beanType.getConstructors()[0];
+        Class [] paramTypes=beanConstructor.getParameterTypes();
+        Object[] paramValues=new Object[paramTypes.length];
+        int i=0;
+
+        for(Class<?> subBeanType : paramTypes){
+            String beanName=null;
+            for(BeanDefinition bd :beanDefinitions){
+                if(bd.getBeanType().equals(subBeanType))
+                {
+                    beanName=bd.getBeanName();
+                    break;
+                }
+            }
+
+            Object subBean=getBean(beanName);
+
+            paramValues[i++]=subBean;
+        }
+
+        return newInstance(beanConstructor,paramValues);
+    }
+
+    private <T> T newInstance(Constructor<?> constructor, Object[] vals){
+        try {
+            System.out.println("------------");
+            System.out.println(Arrays.toString(vals));
+            System.out.println("------------");
+            System.out.println(constructor);
+            System.out.println(Arrays.toString(vals));
+            return (T) constructor.newInstance(vals);
+        } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
     private <T> T newInstance(Class<T> cl){
         try {
             return cl.newInstance();

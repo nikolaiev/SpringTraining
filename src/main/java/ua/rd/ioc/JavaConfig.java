@@ -2,11 +2,8 @@ package ua.rd.ioc;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @AllArgsConstructor
 @Getter
@@ -14,14 +11,16 @@ public class JavaConfig implements Config{
 
     private final BeanDefinition[] beanDefinitions;
 
-    //TODO fix
     public JavaConfig(){
         beanDefinitions=new BeanDefinition[]{};
     }
 
-    public JavaConfig(Map<String, Class<?>> beanDescriptions) {
+    public JavaConfig(Map<String, Map<String, Object>> beanDescriptions) {
         beanDefinitions=beanDescriptions.entrySet().stream()
-                .map(e->new SimpleBeanDefinition(e.getKey(),e.getValue()))
+                .map(e->
+                        new SimpleBeanDefinition(e.getKey(),
+                                (Class<?>) e.getValue().get("class"),
+                                (Boolean) e.getValue().get("proto")))
                 .toArray(BeanDefinition[]::new);
     }
 

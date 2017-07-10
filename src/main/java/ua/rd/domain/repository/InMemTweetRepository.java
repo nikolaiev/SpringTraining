@@ -15,6 +15,14 @@ public class InMemTweetRepository implements TweetRepository{
         );
     }
 
+    public InMemTweetRepository(List<Tweet> tweets) {
+        this.tweets = tweets;
+    }
+
+    public InMemTweetRepository() {
+
+    }
+
 
     @Override
     @Benchmark

@@ -13,7 +13,7 @@ public class SimpleBeanDefinition  implements BeanDefinition{
     public SimpleBeanDefinition(String key, Class<?> value,boolean isPrototype) {
         this.beanName=key;
         this.beanClass=value;
-        this.isPrototype=false;
+        this.isPrototype=isPrototype;
     }
 
 

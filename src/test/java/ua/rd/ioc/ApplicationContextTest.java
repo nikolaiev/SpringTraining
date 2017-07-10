@@ -18,12 +18,32 @@ public class ApplicationContextTest {
         //must be empty
     }
 
-    Map<String,Class<?>> createTestBeanDescription(){
-        Map<String,Class<?>> beanDescriptions=new HashMap<String, Class<?>>(){
+    Map<String, Map<String, Object>> createTestBeanDescription(){
+        Map<String,Map<String,Object>> beanDescriptions=new HashMap<String, Map<String,Object>>(){
             /*initializing block*/
             {
-                put("tweet", Tweet.class);
-                put("tweetRepository", InMemTweetRepository.class);
+                put("tweetRepository", new HashMap<String,Object>(){
+                    {
+                        put("class",InMemTweetRepository.class);
+                        put("proto",false);
+                    }
+                });
+
+                put("tweet2", new HashMap<String,Object>(){
+                    {
+                        put("class",Tweet.class);
+                        put("proto",true);
+                    }
+                });
+
+                put("tweet", new HashMap<String,Object>(){
+                    {
+                        put("class",Tweet.class);
+                        put("proto",true);
+                    }
+                });
+
+
             }
         };
 
@@ -69,14 +89,14 @@ public class ApplicationContextTest {
         Config javaConfig =new JavaConfig(createTestBeanDescription());
         BeanDefinition [] beanDefinition= javaConfig.getBeanDefinitions();
 
-        assertEquals(2,beanDefinition.length);
+        assertEquals(3,beanDefinition.length);
     }
 
 
 
     @Test
     public void testBeanDefinitionNamesWithJavaConfig(){
-        Map<String, Class<?>> testBeanDescription = createTestBeanDescription();
+        Map<String, Map<String, Object>> testBeanDescription = createTestBeanDescription();
         Config javaConfig =new JavaConfig(testBeanDescription );
         Context context=new ApplicationContext(javaConfig);
 
@@ -87,34 +107,27 @@ public class ApplicationContextTest {
 
     @Test
     public void getBean() throws Exception {
-        Map<String, Class<?>> testBeanDescription = createTestBeanDescription();
+        Map<String, Map<String, Object>> testBeanDescription = createTestBeanDescription();
         Config javaConfig =new JavaConfig(testBeanDescription );
         Context context=new ApplicationContext(javaConfig);
 
         assertNotNull(context.getBean("tweet"));
     }
 
-    //TODO getBean prototype???
-    /*@Test
+    @Test
     public void testGetToSameBeansEqual(){
-        Map<String, Class<?>> testBeanDescription = new HashMap<String, Class<?>>(){
-            *//*initializing block*//*
-            {
-                put("tweet", Tweet.class);
-            }
-        };
-        Config javaConfig =new JavaConfig(testBeanDescription );
+        Config javaConfig =new JavaConfig(createTestBeanDescription() );
         Context context=new ApplicationContext(javaConfig);
 
         Object bean1=context.getBean("tweet");
         Object bean2=context.getBean("tweet");
 
-        assertNotSame(bean1,bean2);
-    }*/
+        assertSame(bean1,bean2);
+    }
 
     @Test
     public void testGetPrototypeBeansNotEqual(){
-        Map<String, Class<?>> testBeanDescription = createTestBeanDescription();
+        Map<String, Map<String, Object>> testBeanDescription = createTestBeanDescription();
         Config javaConfig =new JavaConfig(testBeanDescription );
         Context context=new ApplicationContext(javaConfig);
 
@@ -126,7 +139,7 @@ public class ApplicationContextTest {
 
     @Test
     public void testInitMethodCall(){
-        Map<String, Class<?>> testBeanDescription = createTestBeanDescription();
+        Map<String, Map<String, Object>> testBeanDescription = createTestBeanDescription();
         Config javaConfig =new JavaConfig(testBeanDescription );
         Context context=new ApplicationContext(javaConfig);
 
