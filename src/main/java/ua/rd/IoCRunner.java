@@ -10,12 +10,13 @@ import ua.rd.ioc.Config;
 import ua.rd.ioc.Context;
 import ua.rd.ioc.JavaConfig;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
 public class IoCRunner {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
 
 
         Map<String,Map<String,Object>> beanDescriptions=new HashMap<String, Map<String,Object>>(){
@@ -59,7 +60,6 @@ public class IoCRunner {
         System.out.println(service.getAllTweets());
 
         System.out.println(tweetRepository.getAllTweets());
-        System.out.println(tweetRepository.getClass());
 
         System.out.println(tweet.getMsg());
         System.out.println(tweet.getUser());

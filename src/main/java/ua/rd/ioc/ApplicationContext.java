@@ -1,10 +1,9 @@
 package ua.rd.ioc;
 
-import lombok.Data;
-import ua.rd.domain.Tweet;
 import ua.rd.domain.repository.Benchmark;
 
 import java.lang.reflect.*;
+import java.time.Instant;
 import java.util.*;
 
 
@@ -40,9 +39,7 @@ public class ApplicationContext implements   Context {
         }
 
         Object bean=createProtoBean(beanName);
-
-        if(!checkBeanIsProto(beanName))
-            context.put(beanName, bean);
+         context.put(beanName, bean);
     }
 
     private boolean checkBeanIsProto(String beanName){
@@ -69,27 +66,46 @@ public class ApplicationContext implements   Context {
         return createBenchmarkProxy(bean);
     }
 
-    private Object createBenchmarkProxy(Object bean) {
-        //TODO check if method has annotation
+    private <T> T createBenchmarkProxy(T bean) {
         Class<?> beanType=bean.getClass();
 
-        //TODO check if annotation ON/OFF
         boolean isAnnotatedBenchmark=Arrays.stream(beanType.getMethods()).anyMatch(method ->
-            method.isAnnotationPresent(Benchmark.class)
+                method.isAnnotationPresent(Benchmark.class) && method.getAnnotation(Benchmark.class).value()
         );
 
         if(!isAnnotatedBenchmark)
             return bean;
 
         InvocationHandler handler= (proxy, method, args) -> {
-            //TODO check if method annotated
-            System.out.printf("Benchmarking "+method.getName());
-            return method.invoke(bean,args);
+
+            Object res=null;
+
+            Method beanMethod=bean.getClass().getMethod(method.getName(),method.getParameterTypes());
+
+            if(beanMethod.isAnnotationPresent(Benchmark.class) && beanMethod.getAnnotation(Benchmark.class).value()) {
+                long start = Instant.now().toEpochMilli();
+
+                System.out.println("Benchmarking "+method.getName());
+
+                res=method.invoke(bean,args);
+
+                long end = Instant.now().toEpochMilli();
+
+                System.out.println("time is "+ (end-start));
+            }
+            else {
+                res=method.invoke(bean,args);
+            }
+
+
+            return res;
 
         };
 
-        return Proxy.newProxyInstance(bean.getClass().getClassLoader(),
-                bean.getClass().getInterfaces(),handler);
+        Class<?>[] interfaces = bean.getClass().getInterfaces();
+
+        return (T) Proxy.newProxyInstance(bean.getClass().getClassLoader(),interfaces
+                ,handler);
 
     }
 
@@ -139,41 +155,46 @@ public class ApplicationContext implements   Context {
     }
 
     private <T> T createBeanWithNoDefaultConstructor(Class<T> beanType) {
-        System.out.println(beanType);
+
         BeanDefinition [] beanDefinitions=config.getBeanDefinitions();
 
         final Constructor<?> beanConstructor = beanType.getConstructors()[0];
         Class [] paramTypes=beanConstructor.getParameterTypes();
         Object[] paramValues=new Object[paramTypes.length];
+
         int i=0;
 
         for(Class<?> subBeanType : paramTypes){
+
             String beanName=null;
+
             for(BeanDefinition bd :beanDefinitions){
-                if(bd.getBeanType().equals(subBeanType))
+                Class<?>[] interfaces = bd.getBeanType().getInterfaces();
+
+                if(Arrays.stream(interfaces).anyMatch(e->e.equals(subBeanType)))
                 {
                     beanName=bd.getBeanName();
                     break;
                 }
             }
+            T subBean=null;
 
-            Object subBean=getBean(beanName);
+            if(beanName!=null) {
+                subBean = getBean(beanName);
+            }
 
             paramValues[i++]=subBean;
         }
 
-        return newInstance(beanConstructor,paramValues);
+        return newInstance(beanType,paramTypes,paramValues);
     }
 
-    private <T> T newInstance(Constructor<?> constructor, Object[] vals){
+    private <T> T newInstance(Class<T> beanType, Class[] paramTypes, Object[] vals){
         try {
-            System.out.println("------------");
-            System.out.println(Arrays.toString(vals));
-            System.out.println("------------");
-            System.out.println(constructor);
-            System.out.println(Arrays.toString(vals));
+            Constructor<?> constructor=beanType.getConstructor(paramTypes);
             return (T) constructor.newInstance(vals);
-        } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
+
+        } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
             e.printStackTrace();
         }
         return null;
