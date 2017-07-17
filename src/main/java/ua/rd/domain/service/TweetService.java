@@ -7,4 +7,6 @@ import ua.rd.domain.Tweet;
  */
 public interface TweetService {
     Iterable<Tweet> getAllTweets();
+
+    Tweet newTweet(String user, String message);
 }

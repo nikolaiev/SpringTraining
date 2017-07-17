@@ -14,4 +14,8 @@
     2.1. add constructor param - list of tweets
     2.2. add to created constructor list of tweets(prototypes) in configuration
 */
+
+//TODO lesson 3 
+
+1. Via BeanPP implement @Benchmark
  
